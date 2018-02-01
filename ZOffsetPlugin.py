@@ -79,7 +79,7 @@ class ZOffsetPlugin(Extension):
             for plate_id in gcode_dict:
                 gcode_list = gcode_dict[plate_id]
                 if ";ZOFFSETPROCESSED" not in gcode_list[0]:
-                    gcode_list[1] += "G0 Z-%f ;apply negative Z Offset\nG92 Z0 ;Z Offset is now considered 0\n" % z_offset_value
+                    gcode_list[1] += "G0 Z%f ;go to Z Offset\nG92 Z0 ;Z Offset is now considered 0\n" % z_offset_value
 
                     gcode_list[0] += ";ZOFFSETPROCESSED\n"
                     gcode_dict[plate_id] = gcode_list
