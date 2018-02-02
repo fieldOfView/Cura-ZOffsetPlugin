@@ -1,7 +1,7 @@
 # Copyright (c) 2018 fieldOfView
 # The ZOffsetPlugin is released under the terms of the AGPLv3 or higher.
 
-import os, json
+import os, json, re
 
 from UM.Extension import Extension
 from UM.Application import Application
@@ -76,10 +76,21 @@ class ZOffsetPlugin(Extension):
             gcode_dict = getattr(scene, "gcode_dict")
             dict_changed = False
 
+            z_move_regex = re.compile("(G[0|1]\s.*Z)(\d*\.?\d*)(.*)")
+
             for plate_id in gcode_dict:
                 gcode_list = gcode_dict[plate_id]
                 if ";ZOFFSETPROCESSED" not in gcode_list[0]:
-                    gcode_list[1] += "G0 Z%f ;go to Z Offset\nG92 Z0 ;Z Offset is now considered 0\n" % z_offset_value
+                    # look for the first line that contains a G0 or G1 move on the Z axis
+                    # gcode_list[2] is the first layer, after the preamble and the start gcode
+                    lines = gcode_list[2].split("\n")
+                    for (line_nr, line) in enumerate(lines):
+                        result = z_move_regex.fullmatch(line)
+                        if result:
+                            lines[line_nr] = result.group(1) + str(float(result.group(2)) + z_offset_value) + result.group(3) + " ;adjusted by z offset"
+                            lines[line_nr] += "\n" + "G92 Z" + result.group(2) + " ;consider this the original z before offset"
+                            gcode_list[2] = "\n".join(lines)
+                            break
 
                     gcode_list[0] += ";ZOFFSETPROCESSED\n"
                     gcode_dict[plate_id] = gcode_list
@@ -87,5 +98,3 @@ class ZOffsetPlugin(Extension):
 
             if dict_changed:
                 setattr(scene, "gcode_list", gcode_list)
-            else:
-                Logger.log("e", "Already post processed")
