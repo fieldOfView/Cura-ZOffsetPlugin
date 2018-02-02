@@ -45,6 +45,10 @@ class ZOffsetPlugin(Extension):
     def _onContainerLoadComplete(self, container_id):
         container = ContainerRegistry.getInstance().findContainers(id = container_id)[0]
         if not isinstance(container, DefinitionContainer):
+            # skip containers that are not definitions
+            return
+        if container.getMetaDataEntry("type") == "extruder":
+            # skip extruder definitions
             return
 
         platform_adhesion_category = container.findDefinitions(key="platform_adhesion")
@@ -55,9 +59,12 @@ class ZOffsetPlugin(Extension):
             zoffset_definition = SettingDefinition(self._setting_key, container, platform_adhesion_category, self._i18n_catalog)
             zoffset_definition.deserialize(self._setting_dict)
 
-            platform_adhesion_category._children.append(zoffset_definition) # this is naughty, but the alternative is to serialise and deserialise the whole thing
-
-            container.addDefinition(zoffset_definition)
+            # add the setting to the already existing platform adhesion settingdefinition
+            # private member access is naughty, but the alternative is to serialise, nix and deserialise the whole thing,
+            # which breaks stuff
+            platform_adhesion_category._children.append(zoffset_definition)
+            container._definition_cache[self._setting_key] = zoffset_definition
+            container._updateRelations(zoffset_definition)
 
 
     def _onGlobalContainerStackChanged(self):
