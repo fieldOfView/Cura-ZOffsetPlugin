@@ -100,7 +100,8 @@ class ZOffsetPlugin(Extension):
                 for (line_nr, line) in enumerate(lines):
                     result = z_move_regex.fullmatch(line)
                     if result:
-                        lines[line_nr] = result.group(1) + str(float(result.group(2)) + z_offset_value) + result.group(3) + " ;adjusted by z offset"
+                        adjusted_z = round(float(result.group(2)) + z_offset_value, 5)
+                        lines[line_nr] = result.group(1) + str(adjusted_z) + result.group(3) + " ;adjusted by z offset"
                         lines[line_nr] += "\n" + "G92 Z" + result.group(2) + " ;consider this the original z before offset"
                         gcode_list[2] = "\n".join(lines)
                         break
