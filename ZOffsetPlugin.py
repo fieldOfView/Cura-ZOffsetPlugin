@@ -93,9 +93,16 @@ class ZOffsetPlugin(Extension):
                 Logger.log("w", "Plate %s does not contain any layers", plate_id)
                 continue
 
-            if ";ZOFFSETPROCESSED" not in gcode_list[0]:
+            if ";ZOFFSETPROCESSED\n" not in gcode_list[0]:
                 # look for the first line that contains a G0 or G1 move on the Z axis
                 # gcode_list[2] is the first layer, after the preamble and the start gcode
+
+                if ";LAYER:0\n" in gcode_list[1]:
+                    # layer 0 somehow got appended to the start gcode chunk
+                    chunks = gcode_list[1].split(";LAYER:0\n")
+                    gcode_list[1] = chunks[0]
+                    gcode_list.insert(2, ";LAYER:0\n" + chunks[1])
+
                 lines = gcode_list[2].split("\n")
                 for (line_nr, line) in enumerate(lines):
                     result = z_move_regex.fullmatch(line)
