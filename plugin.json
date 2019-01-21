@@ -1,7 +1,8 @@
 {
     "name": "Z Offset plugin",
     "author": "fieldOfView",
-    "version": "3.5",
+    "version": "3.5.1",
     "description": "Adds a Z Offset setting to change the distance between the nozzle and the buildplate",
-    "api": 5
+    "api": 5,
+    "supported_sdk_versions": ["5.0.0", "6.0.0"]
 }
