@@ -103,15 +103,17 @@ class ZOffsetPlugin(Extension):
                     gcode_list[1] = chunks[0]
                     gcode_list.insert(2, ";LAYER:0\n" + chunks[1])
 
-                lines = gcode_list[2].split("\n")
-                for (line_nr, line) in enumerate(lines):
-                    result = z_move_regex.fullmatch(line)
-                    if result:
-                        adjusted_z = round(float(result.group(2)) + z_offset_value, 5)
-                        lines[line_nr] = result.group(1) + str(adjusted_z) + result.group(3) + " ;adjusted by z offset"
-                        lines[line_nr] += "\n" + "G92 Z" + result.group(2) + " ;consider this the original z before offset"
-                        gcode_list[2] = "\n".join(lines)
-                        break
+                for n in range(2, len(gcode_list)): # all gcode lists / layers, start at layer 1 = gcode list 2
+                    lines = gcode_list[n].split("\n")
+                    for (line_nr, line) in enumerate(lines):
+                        result = z_move_regex.fullmatch(line)
+                        if result:
+                            adjusted_z = round(float(result.group(2)) + z_offset_value, 5)
+                            
+                            lines[line_nr] = result.group(1) + str(adjusted_z) + result.group(3) + " ;meh! original Z was " + result.group(2)
+                            
+                            gcode_list[n] = "\n".join(lines)
+                            # break
 
                 gcode_list[0] += ";ZOFFSETPROCESSED\n"
                 gcode_dict[plate_id] = gcode_list
