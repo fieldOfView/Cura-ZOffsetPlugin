@@ -6,7 +6,7 @@ The Z Offset setting can be found in the Custom print setup by using the Search 
 
 ## Installation
 
-###Windows
+### Windows
 Clone this repository into `C:\Users\USERNAME\AppData\Roaming\cura\4.0\plugins`
 
 ## How it works
