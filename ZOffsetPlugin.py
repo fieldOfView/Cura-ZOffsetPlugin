@@ -109,11 +109,8 @@ class ZOffsetPlugin(Extension):
                         result = z_move_regex.fullmatch(line)
                         if result:
                             adjusted_z = round(float(result.group(2)) + z_offset_value, 5)
-                            
                             lines[line_nr] = result.group(1) + str(adjusted_z) + result.group(3) + " ;changed by zOffset! original Z value was " + result.group(2)
-                            
                             gcode_list[n] = "\n".join(lines)
-                            # break
 
                 gcode_list[0] += ";ZOFFSETPROCESSED\n"
                 gcode_dict[plate_id] = gcode_list
