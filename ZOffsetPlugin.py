@@ -110,7 +110,7 @@ class ZOffsetPlugin(Extension):
                         if result:
                             adjusted_z = round(float(result.group(2)) + z_offset_value, 5)
                             
-                            lines[line_nr] = result.group(1) + str(adjusted_z) + result.group(3) + " ;meh! original Z was " + result.group(2)
+                            lines[line_nr] = result.group(1) + str(adjusted_z) + result.group(3) + " ;changed by zOffset! original Z value was " + result.group(2)
                             
                             gcode_list[n] = "\n".join(lines)
                             # break
