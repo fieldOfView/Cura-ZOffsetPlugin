@@ -79,6 +79,10 @@ class ZOffsetPlugin(Extension):
         if z_offset_value == 0:
             return
 
+        # the default offset method does not work on Ultimaker S5 and Ultimaker 3 models, which use the "Griffin" gcode flavor
+        gcode_flavor = self._global_container_stack.getProperty("machine_gcode_flavor", "value")
+        use_extensive_offset = True if gcode_flavor == "Griffin" else False
+
         gcode_dict = getattr(scene, "gcode_dict", {})
         if not gcode_dict: # this also checks for an empty dict
             Logger.log("w", "Scene has no gcode to process")
@@ -103,15 +107,28 @@ class ZOffsetPlugin(Extension):
                     gcode_list[1] = chunks[0]
                     gcode_list.insert(2, ";LAYER:0\n" + chunks[1])
 
-                lines = gcode_list[2].split("\n")
-                for (line_nr, line) in enumerate(lines):
-                    result = z_move_regex.fullmatch(line)
-                    if result:
-                        adjusted_z = round(float(result.group(2)) + z_offset_value, 5)
-                        lines[line_nr] = result.group(1) + str(adjusted_z) + result.group(3) + " ;adjusted by z offset"
-                        lines[line_nr] += "\n" + "G92 Z" + result.group(2) + " ;consider this the original z before offset"
-                        gcode_list[2] = "\n".join(lines)
-                        break
+                if not use_extensive_offset:
+                    # find the first vertical G0/G1, adjust it and reset the internal coordinate to apply offset to all subsequent moves
+                    lines = gcode_list[2].split("\n")
+                    for (line_nr, line) in enumerate(lines):
+                        result = z_move_regex.fullmatch(line)
+                        if result:
+                            adjusted_z = round(float(result.group(2)) + z_offset_value, 5)
+                            lines[line_nr] = result.group(1) + str(adjusted_z) + result.group(3) + " ;adjusted by z offset"
+                            lines[line_nr] += "\n" + "G92 Z" + result.group(2) + " ;consider this the original z before offset"
+                            gcode_list[2] = "\n".join(lines)
+                            break
+
+                else:
+                    # process all G0/G1 lines and adjust the Z value
+                    for n in range(2, len(gcode_list)): # all gcode lists / layers, start at layer 1 = gcode list 2
+                        lines = gcode_list[n].split("\n")
+                        for (line_nr, line) in enumerate(lines):
+                            result = z_move_regex.fullmatch(line)
+                            if result:
+                                adjusted_z = round(float(result.group(2)) + z_offset_value, 5)
+                                lines[line_nr] = result.group(1) + str(adjusted_z) + result.group(3) + " ;adjusted by z offset"
+                                gcode_list[n] = "\n".join(lines)
 
                 gcode_list[0] += ";ZOFFSETPROCESSED\n"
                 gcode_dict[plate_id] = gcode_list
