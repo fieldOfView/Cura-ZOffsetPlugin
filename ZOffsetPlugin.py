@@ -29,8 +29,9 @@ class ZOffsetPlugin(Extension):
             "default_value": 0,
             "minimum_value": "-layer_height_0",
             "maximum_value_warning": "layer_height_0",
+            "resolve": "min(extruderValues('adhesion_z_offset'))",
             "settable_per_mesh": False,
-            "settable_per_extruder": True,
+            "settable_per_extruder": False,
             "settable_per_meshgroup": False
         }
 
@@ -68,12 +69,11 @@ class ZOffsetPlugin(Extension):
         scene = self._application.getController().getScene()
 
         global_container_stack = self._application.getGlobalContainerStack()
-        initial_extruder_stack = self._application.getExtruderManager().getUsedExtruderStacks()[0]
-        if not global_container_stack or not initial_extruder_stack:
+        if not global_container_stack:
             return
 
         # get setting from Cura
-        z_offset_value = initial_extruder_stack.getProperty(self._setting_key, "value")
+        z_offset_value = global_container_stack.getProperty(self._setting_key, "value")
         if z_offset_value == 0:
             return
 
