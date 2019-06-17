@@ -30,14 +30,11 @@ class ZOffsetPlugin(Extension):
             "minimum_value": "-layer_height_0",
             "maximum_value_warning": "layer_height_0",
             "settable_per_mesh": False,
-            "settable_per_extruder": False,
+            "settable_per_extruder": True,
             "settable_per_meshgroup": False
         }
 
         ContainerRegistry.getInstance().containerLoadComplete.connect(self._onContainerLoadComplete)
-
-        self._application.globalContainerStackChanged.connect(self._onGlobalContainerStackChanged)
-        self._onGlobalContainerStackChanged()
 
         self._application.getOutputDeviceManager().writeStarted.connect(self._filterGcode)
 
@@ -67,20 +64,21 @@ class ZOffsetPlugin(Extension):
             container._updateRelations(zoffset_definition)
 
 
-    def _onGlobalContainerStackChanged(self):
-        self._global_container_stack = self._application.getGlobalContainerStack()
-
-
     def _filterGcode(self, output_device):
         scene = self._application.getController().getScene()
 
+        global_container_stack = self._application.getGlobalContainerStack()
+        initial_extruder_stack = self._application.getExtruderManager().getUsedExtruderStacks()[0]
+        if not global_container_stack or not initial_extruder_stack:
+            return
+
         # get setting from Cura
-        z_offset_value = self._global_container_stack.getProperty(self._setting_key, "value")
+        z_offset_value = initial_extruder_stack.getProperty(self._setting_key, "value")
         if z_offset_value == 0:
             return
 
         # the default offset method does not work on Ultimaker S5 and Ultimaker 3 models, which use the "Griffin" gcode flavor
-        gcode_flavor = self._global_container_stack.getProperty("machine_gcode_flavor", "value")
+        gcode_flavor = global_container_stack.getProperty("machine_gcode_flavor", "value")
         use_extensive_offset = True if gcode_flavor == "Griffin" else False
 
         gcode_dict = getattr(scene, "gcode_dict", {})
