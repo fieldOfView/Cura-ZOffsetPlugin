@@ -29,7 +29,7 @@ class ZOffsetPlugin(Extension):
             "default_value": 0,
             "minimum_value": "-layer_height_0",
             "maximum_value_warning": "layer_height_0",
-            "resolve": "min(extruderValues('adhesion_z_offset'))",
+            "resolve": "extruderValue(adhesion_extruder_nr, 'adhesion_z_offset') if resolveOrValue('adhesion_type') != 'none' else min(extruderValues('adhesion_z_offset'))",
             "settable_per_mesh": False,
             "settable_per_extruder": False,
             "settable_per_meshgroup": False
