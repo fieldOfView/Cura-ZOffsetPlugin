@@ -1,7 +1,8 @@
 # Copyright (c) 2018 fieldOfView
 # The ZOffsetPlugin is released under the terms of the AGPLv3 or higher.
 
-import os, json, re
+import re
+from collections import OrderedDict
 
 from UM.Extension import Extension
 from UM.Application import Application
@@ -10,9 +11,6 @@ from UM.Settings.DefinitionContainer import DefinitionContainer
 from UM.Settings.ContainerRegistry import ContainerRegistry
 from UM.Logger import Logger
 
-from UM.i18n import i18nCatalog
-i18n_catalog = i18nCatalog("ZOffsetPlugin")
-
 class ZOffsetPlugin(Extension):
     def __init__(self):
         super().__init__()
@@ -20,8 +18,9 @@ class ZOffsetPlugin(Extension):
         self._application = Application.getInstance()
 
         self._i18n_catalog = None
-        self._setting_key = "adhesion_z_offset"
-        self._setting_dict = {
+
+        self._settings_dict = OrderedDict()
+        self._settings_dict["adhesion_z_offset"] = {
             "label": "Z Offset",
             "description": "An additional distance between the nozzle and the build platform.",
             "type": "float",
@@ -30,6 +29,16 @@ class ZOffsetPlugin(Extension):
             "minimum_value": "-(layer_height_0 + 0.15)",
             "maximum_value_warning": "layer_height_0",
             "resolve": "extruderValue(adhesion_extruder_nr, 'adhesion_z_offset') if resolveOrValue('adhesion_type') != 'none' else min(extruderValues('adhesion_z_offset'))",
+            "settable_per_mesh": False,
+            "settable_per_extruder": False,
+            "settable_per_meshgroup": False
+        }
+        self._settings_dict["adhesion_z_offset_extensive_processing"] = {
+            "label": "Extensive Z Offset Processing",
+            "description": "Apply the Z Offset throughout the Gcode file instead of affecting the coordinate system. Turning this option on will increae the processing time so it is recommended to leave it off.",
+            "type": "bool",
+            "default_value": False,
+            "value": "True if machine_gcode_flavor == \"Griffin\" else False",
             "settable_per_mesh": False,
             "settable_per_extruder": False,
             "settable_per_meshgroup": False
@@ -50,19 +59,21 @@ class ZOffsetPlugin(Extension):
             return
 
         platform_adhesion_category = container.findDefinitions(key="platform_adhesion")
-        zoffset_setting = container.findDefinitions(key=self._setting_key)
+        zoffset_setting = container.findDefinitions(key=list(self._settings_dict.keys())[0])
         if platform_adhesion_category and not zoffset_setting:
             # this machine doesn't have a zoffset setting yet
             platform_adhesion_category = platform_adhesion_category[0]
-            zoffset_definition = SettingDefinition(self._setting_key, container, platform_adhesion_category, self._i18n_catalog)
-            zoffset_definition.deserialize(self._setting_dict)
+            for setting_key, setting_dict in self._settings_dict.items():
 
-            # add the setting to the already existing platform adhesion settingdefinition
-            # private member access is naughty, but the alternative is to serialise, nix and deserialise the whole thing,
-            # which breaks stuff
-            platform_adhesion_category._children.append(zoffset_definition)
-            container._definition_cache[self._setting_key] = zoffset_definition
-            container._updateRelations(zoffset_definition)
+                definition = SettingDefinition(setting_key, container, platform_adhesion_category, self._i18n_catalog)
+                definition.deserialize(setting_dict)
+
+                # add the setting to the already existing platform adhesion settingdefinition
+                # private member access is naughty, but the alternative is to serialise, nix and deserialise the whole thing,
+                # which breaks stuff
+                platform_adhesion_category._children.append(definition)
+                container._definition_cache[setting_key] = definition
+                container._updateRelations(definition)
 
 
     def _filterGcode(self, output_device):
@@ -73,13 +84,11 @@ class ZOffsetPlugin(Extension):
             return
 
         # get setting from Cura
-        z_offset_value = global_container_stack.getProperty(self._setting_key, "value")
+        z_offset_value = global_container_stack.getProperty("adhesion_z_offset", "value")
         if z_offset_value == 0:
             return
 
-        # the default offset method does not work on Ultimaker S5 and Ultimaker 3 models, which use the "Griffin" gcode flavor
-        gcode_flavor = global_container_stack.getProperty("machine_gcode_flavor", "value")
-        use_extensive_offset = True if gcode_flavor == "Griffin" else False
+        use_extensive_offset = global_container_stack.getProperty("adhesion_z_offset_extensive_processing", "value")
 
         gcode_dict = getattr(scene, "gcode_dict", {})
         if not gcode_dict: # this also checks for an empty dict
