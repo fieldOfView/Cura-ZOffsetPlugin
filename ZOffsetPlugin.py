@@ -22,7 +22,7 @@ class ZOffsetPlugin(Extension):
         self._settings_dict = OrderedDict()
         self._settings_dict["adhesion_z_offset"] = {
             "label": "Z Offset",
-            "description": "An additional offset of the build platform in relation to the nozzle.",
+            "description": "An additional offset of the build platform in relation to the nozzle. A negative value 'squishes' the print into the buildplate, a positive value will result in a bigger distance between the buildplate and the print.",
             "type": "float",
             "unit": "mm",
             "default_value": 0,
