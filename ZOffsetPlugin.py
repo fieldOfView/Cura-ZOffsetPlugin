@@ -22,7 +22,7 @@ class ZOffsetPlugin(Extension):
         self._settings_dict = OrderedDict()
         self._settings_dict["adhesion_z_offset"] = {
             "label": "Z Offset",
-            "description": "An additional distance between the nozzle and the build platform.",
+            "description": "An additional offset of the build platform in relation to the nozzle.",
             "type": "float",
             "unit": "mm",
             "default_value": 0,
