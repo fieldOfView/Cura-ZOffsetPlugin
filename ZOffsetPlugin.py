@@ -100,7 +100,7 @@ class ZOffsetPlugin(Extension):
             return
 
         dict_changed = False
-        z_move_regex = re.compile("(G[0|1]\s.*Z)(-?\d*\.?\d*)(.*)")
+        z_move_regex = re.compile(r"(G[01]\s.*Z)([-+]?\d*\.?\d*)([\s;].*)")
 
         for plate_id in gcode_dict:
             gcode_list = gcode_dict[plate_id]
