@@ -54,7 +54,12 @@ class ZOffsetPlugin(Extension):
             # skip containers that could not be loaded, or subsequent findContainers() will cause an infinite loop
             return
 
-        container = ContainerRegistry.getInstance().findContainers(id = container_id)[0]
+        try:
+            container = ContainerRegistry.getInstance().findContainers(id = container_id)[0]
+        except IndexError:
+            # the container no longer exists
+            return
+
         if not isinstance(container, DefinitionContainer):
             # skip containers that are not definitions
             return
