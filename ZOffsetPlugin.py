@@ -50,7 +50,16 @@ class ZOffsetPlugin(Extension):
 
 
     def _onContainerLoadComplete(self, container_id):
-        container = ContainerRegistry.getInstance().findContainers(id = container_id)[0]
+        if not ContainerRegistry.getInstance().isLoaded(container_id):
+            # skip containers that could not be loaded, or subsequent findContainers() will cause an infinite loop
+            return
+
+        try:
+            container = ContainerRegistry.getInstance().findContainers(id = container_id)[0]
+        except IndexError:
+            # the container no longer exists
+            return
+
         if not isinstance(container, DefinitionContainer):
             # skip containers that are not definitions
             return
@@ -96,7 +105,7 @@ class ZOffsetPlugin(Extension):
             return
 
         dict_changed = False
-        z_move_regex = re.compile("(G[0|1]\s.*Z)(\d*\.?\d*)(.*)")
+        z_move_regex = re.compile(r"(G[01]\s.*Z)([-+]?\d*\.?\d*)([\s;].*)")
 
         for plate_id in gcode_dict:
             gcode_list = gcode_dict[plate_id]
@@ -114,13 +123,28 @@ class ZOffsetPlugin(Extension):
                     gcode_list[1] = chunks[0]
                     gcode_list.insert(2, ";LAYER:0\n" + chunks[1])
 
+                relative_mode = False
+
                 if not use_extensive_offset:
                     # find the first vertical G0/G1, adjust it and reset the internal coordinate to apply offset to all subsequent moves
                     lines = gcode_list[2].split("\n")
                     for (line_nr, line) in enumerate(lines):
+                        if line.startswith("G91"):
+                            relative_mode = True
+                            continue
+                        elif line.startswith("G90"):
+                            relative_mode = False
+                            continue
+                        if relative_mode:
+                            continue
+
                         result = z_move_regex.fullmatch(line)
                         if result:
-                            adjusted_z = round(float(result.group(2)) + z_offset_value, 5)
+                            try:
+                                adjusted_z = round(float(result.group(2)) + z_offset_value, 5)
+                            except ValueError:
+                                Logger.log("e", "Unable to process Z coordinate in line %s", line)
+                                continue
                             lines[line_nr] = result.group(1) + str(adjusted_z) + result.group(3) + " ;adjusted by z offset"
                             lines[line_nr] += "\n" + "G92 Z" + result.group(2) + " ;consider this the original z before offset"
                             gcode_list[2] = "\n".join(lines)
@@ -131,9 +155,22 @@ class ZOffsetPlugin(Extension):
                     for n in range(2, len(gcode_list)): # all gcode lists / layers, start at layer 1 = gcode list 2
                         lines = gcode_list[n].split("\n")
                         for (line_nr, line) in enumerate(lines):
+                            if line.startswith("G91"):
+                                relative_mode = True
+                                continue
+                            elif line.startswith("G90"):
+                                relative_mode = False
+                                continue
+                            if relative_mode:
+                                continue
+
                             result = z_move_regex.fullmatch(line)
                             if result:
-                                adjusted_z = round(float(result.group(2)) + z_offset_value, 5)
+                                try:
+                                    adjusted_z = round(float(result.group(2)) + z_offset_value, 5)
+                                except ValueError:
+                                    Logger.log("e", "Unable to process Z coordinate in line %s", line)
+                                    continue
                                 lines[line_nr] = result.group(1) + str(adjusted_z) + result.group(3) + " ;adjusted by z offset"
                                 gcode_list[n] = "\n".join(lines)
 
