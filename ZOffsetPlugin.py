@@ -33,6 +33,21 @@ class ZOffsetPlugin(Extension):
             "settable_per_extruder": False,
             "settable_per_meshgroup": False
         }
+        self._settings_dict["adhesion_initial_layer_z_offset"] = {
+            "label": "Initial Layer Z Offset",
+            "description": "An additional offset of the build platform in relation to the nozzle applied to the first layer. A negative value 'squishes' the print into the buildplate, a positive value will result in a bigger distance between the buildplate and the print.",
+            "type": "float",
+            "unit": "mm",
+            "default_value": 0,
+            "minimum_value": "-(layer_height_0 + 0.15)",
+            "maximum_value_warning": "layer_height_0",
+            "resolve": "extruderValue(adhesion_extruder_nr, 'adhesion_initial_layer_z_offset') if resolveOrValue('adhesion_type') != 'none' else min(extruderValues('adhesion_initial_layer_z_offset'))",
+            "settable_per_mesh": False,
+            "settable_per_extruder": False,
+            "settable_per_meshgroup": False,
+            "value": "adhesion_z_offset",
+            "enabled": "adhesion_z_offset_extensive_processing"
+        }
         self._settings_dict["adhesion_z_offset_extensive_processing"] = {
             "label": "Extensive Z Offset Processing",
             "description": "Apply the Z Offset throughout the Gcode file instead of affecting the coordinate system. Turning this option on will increae the processing time so it is recommended to leave it off.",
@@ -99,6 +114,8 @@ class ZOffsetPlugin(Extension):
 
         use_extensive_offset = global_container_stack.getProperty("adhesion_z_offset_extensive_processing", "value")
 
+        initial_layer_z_offset_value = global_container_stack.getProperty("adhesion_initial_layer_z_offset", "value")
+
         gcode_dict = getattr(scene, "gcode_dict", {})
         if not gcode_dict: # this also checks for an empty dict
             Logger.log("w", "Scene has no gcode to process")
@@ -151,10 +168,15 @@ class ZOffsetPlugin(Extension):
                             break
 
                 else:
+                    set_initial_layer_z_offset = initial_layer_z_offset_value != z_offset_value
+
                     # process all G0/G1 lines and adjust the Z value
                     for n in range(2, len(gcode_list)): # all gcode lists / layers, start at layer 1 = gcode list 2
                         lines = gcode_list[n].split("\n")
                         for (line_nr, line) in enumerate(lines):
+                            if ";LAYER:1" in line:
+                                set_initial_layer_z_offset = False
+
                             if line.startswith("G91"):
                                 relative_mode = True
                                 continue
@@ -167,7 +189,10 @@ class ZOffsetPlugin(Extension):
                             result = z_move_regex.fullmatch(line)
                             if result:
                                 try:
-                                    adjusted_z = round(float(result.group(2)) + z_offset_value, 5)
+                                    if set_initial_layer_z_offset:
+                                        adjusted_z = round(float(result.group(2)) + initial_layer_z_offset_value, 5)
+                                    else:
+                                        adjusted_z = round(float(result.group(2)) + z_offset_value, 5)
                                 except ValueError:
                                     Logger.log("e", "Unable to process Z coordinate in line %s", line)
                                     continue
