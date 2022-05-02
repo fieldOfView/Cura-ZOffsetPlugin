@@ -1,4 +1,4 @@
-# Copyright (c) 2018 fieldOfView
+# Copyright (c) 2022 Aldo Hoeben / fieldOfView
 # The ZOffsetPlugin is released under the terms of the AGPLv3 or higher.
 
 import re
@@ -35,7 +35,7 @@ class ZOffsetPlugin(Extension):
         }
         self._settings_dict["adhesion_z_offset_extensive_processing"] = {
             "label": "Extensive Z Offset Processing",
-            "description": "Apply the Z Offset throughout the Gcode file instead of affecting the coordinate system. Turning this option on will increae the processing time so it is recommended to leave it off.",
+            "description": "Apply the Z Offset throughout the Gcode file instead of affecting the coordinate system. Turning this option on will increase the processing time so it is recommended to leave it off, but it may be needed for some firmware versions.",
             "type": "bool",
             "default_value": False,
             "value": "True if machine_gcode_flavor == \"Griffin\" else False",
