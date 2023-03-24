@@ -1,0 +1,53 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-03-24 13:16+0000\n"
+"PO-Revision-Date: 2023-03-24 14:24+0100\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: nl_NL\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 3.2.2\n"
+
+#: zoffset.def.json
+msgctxt "adhesion_z_offset label"
+msgid "Z Offset"
+msgstr "Z Offset"
+
+#: zoffset.def.json
+msgctxt "adhesion_z_offset description"
+msgid ""
+"An additional offset of the build platform in relation to the nozzle. A "
+"negative value 'squishes' the print into the buildplate, a positive value "
+"will result in a bigger distance between the buildplate and the print."
+msgstr ""
+"Een extra offset van het bouwplatform ten opzichte van de nozzle. Een "
+"negatieve waarde 'drukt' de print in het platform, een positieve waarde "
+"resulteert in een grotere afstand tussen het platform en de print."
+
+#: zoffset.def.json
+msgctxt "adhesion_z_offset_extensive_processing label"
+msgid "Extensive Z Offset Processing"
+msgstr "Uitgebreide Z-offsetverwerking"
+
+#: zoffset.def.json
+msgctxt "adhesion_z_offset_extensive_processing description"
+msgid ""
+"Apply the Z Offset throughout the Gcode file instead of affecting the "
+"coordinate system. Turning this option on will increase the processing time "
+"so it is recommended to leave it off, but it may be needed for some firmware "
+"versions."
+msgstr ""
+"Pas de Z-offset toe in het hele Gcode-bestand in plaats van het "
+"coördinatensysteem te beïnvloeden. Als u deze optie inschakelt, neemt de "
+"verwerkingstijd toe, dus het wordt aanbevolen om deze optie uit te laten, "
+"maar het kan nodig zijn voor sommige firmwareversies."
