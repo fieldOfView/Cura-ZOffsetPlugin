@@ -2,7 +2,9 @@
 # The ZOffsetPlugin is released under the terms of the AGPLv3 or higher.
 
 import re
-from collections import OrderedDict
+import json
+import os.path
+import collections
 
 from UM.Extension import Extension
 from UM.Application import Application
@@ -10,46 +12,58 @@ from UM.Settings.SettingDefinition import SettingDefinition
 from UM.Settings.DefinitionContainer import DefinitionContainer
 from UM.Settings.ContainerRegistry import ContainerRegistry
 from UM.Logger import Logger
+from UM.Resources import Resources
+from UM.i18n import i18nCatalog
+
+from typing import List, Any, Dict
+
 
 class ZOffsetPlugin(Extension):
     def __init__(self):
         super().__init__()
 
         self._application = Application.getInstance()
+        plugin_folder = os.path.abspath(os.path.dirname(__file__))
+        Resources.addSearchPath(plugin_folder)  # Plugin translation file import
+        self._i18n_catalog = i18nCatalog("zoffsetplugin")
 
-        self._i18n_catalog = None
+        self._settings_dict = {}  # type: Dict[str, Any]
+        self._expanded_categories = []  # type: List[str]  # temporary list used while creating nested settings
 
-        self._settings_dict = OrderedDict()
-        self._settings_dict["adhesion_z_offset"] = {
-            "label": "Z Offset",
-            "description": "An additional offset of the build platform in relation to the nozzle. A negative value 'squishes' the print into the buildplate, a positive value will result in a bigger distance between the buildplate and the print.",
-            "type": "float",
-            "unit": "mm",
-            "default_value": 0,
-            "minimum_value": "-(layer_height_0 + 0.15)",
-            "maximum_value_warning": "layer_height_0",
-            "resolve": "extruderValue(adhesion_extruder_nr, 'adhesion_z_offset') if resolveOrValue('adhesion_type') != 'none' else min(extruderValues('adhesion_z_offset'))",
-            "settable_per_mesh": False,
-            "settable_per_extruder": False,
-            "settable_per_meshgroup": False
-        }
-        self._settings_dict["adhesion_z_offset_extensive_processing"] = {
-            "label": "Extensive Z Offset Processing",
-            "description": "Apply the Z Offset throughout the Gcode file instead of affecting the coordinate system. Turning this option on will increase the processing time so it is recommended to leave it off, but it may be needed for some firmware versions.",
-            "type": "bool",
-            "default_value": False,
-            "value": "True if machine_gcode_flavor == \"Griffin\" else False",
-            "settable_per_mesh": False,
-            "settable_per_extruder": False,
-            "settable_per_meshgroup": False
-        }
+        settings_definition_path = os.path.join(plugin_folder, "zoffset.def.json")
+
+        try:
+            with open(settings_definition_path, "r", encoding="utf-8") as f:
+                self._settings_dict = json.load(
+                    f, object_pairs_hook=collections.OrderedDict
+                )["settings"]
+        except Exception:
+            Logger.logException("e", "Could not load z offset settings definition")
+            return
+
+        if self._i18n_catalog.hasTranslationLoaded():
+            # Apply translation to loaded dict, because the setting definition model
+            # does not deal well with translations from plugins
+            self._translateSettings(self._settings_dict)
 
         ContainerRegistry.getInstance().containerLoadComplete.connect(self._onContainerLoadComplete)
-
         self._application.getOutputDeviceManager().writeStarted.connect(self._filterGcode)
 
+    def _translateSettings(self, json_root: Dict[str, Any]) -> None:
+        for key in json_root:
+            json_root[key]["label"] = self._i18n_catalog.i18nc(
+                key + " label", json_root[key]["label"]
+            )
+            json_root[key]["description"] = self._i18n_catalog.i18nc(
+                key + " description", json_root[key]["description"]
+            )
 
-    def _onContainerLoadComplete(self, container_id):
+            # TODO: handle options from comboboxes (not that this plugin has any)
+
+            if "children" in json_root[key]:
+                self._translateSettings(json_root[key]["children"])
+
+    def _onContainerLoadComplete(self, container_id: str) -> None:
         if not ContainerRegistry.getInstance().isLoaded(container_id):
             # skip containers that could not be loaded, or subsequent findContainers() will cause an infinite loop
             return
@@ -67,23 +81,42 @@ class ZOffsetPlugin(Extension):
             # skip extruder definitions
             return
 
-        platform_adhesion_category = container.findDefinitions(key="platform_adhesion")
-        zoffset_setting = container.findDefinitions(key=list(self._settings_dict.keys())[0])
-        if platform_adhesion_category and not zoffset_setting:
-            # this machine doesn't have a zoffset setting yet
-            platform_adhesion_category = platform_adhesion_category[0]
-            for setting_key, setting_dict in self._settings_dict.items():
+        try:
+            adhesion_category = container.findDefinitions(key="platform_adhesion")[0]
+        except IndexError:
+            Logger.log("e", "Could not find parent category setting to add settings to")
+            return
 
-                definition = SettingDefinition(setting_key, container, platform_adhesion_category, self._i18n_catalog)
-                definition.deserialize(setting_dict)
+        for setting_key in self._settings_dict.keys():
+            setting_definition = SettingDefinition(
+                setting_key, container, adhesion_category, self._i18n_catalog
+            )
+            setting_definition.deserialize(self._settings_dict[setting_key])
 
-                # add the setting to the already existing platform adhesion settingdefinition
-                # private member access is naughty, but the alternative is to serialise, nix and deserialise the whole thing,
-                # which breaks stuff
-                platform_adhesion_category._children.append(definition)
-                container._definition_cache[setting_key] = definition
-                container._updateRelations(definition)
+            # add the setting to the already existing platform_adhesion settingdefinition
+            # private member access is naughty, but the alternative is to serialise, nix and deserialise the whole thing,
+            # which breaks stuff
+            adhesion_category._children.append(setting_definition)
+            container._definition_cache[setting_key] = setting_definition
 
+            self._expanded_categories = self._application.expandedCategories.copy()
+            self._updateAddedChildren(container, setting_definition)
+            self._application.setExpandedCategories(self._expanded_categories)
+            self._expanded_categories = []  # type: List[str]
+            container._updateRelations(setting_definition)
+
+    def _updateAddedChildren(self, container: DefinitionContainer, setting_definition: SettingDefinition) -> None:
+        children = setting_definition.children
+        if not children or not setting_definition.parent:
+            return
+
+        # make sure this setting is expanded so its children show up in setting views
+        if setting_definition.parent.key in self._expanded_categories:
+            self._expanded_categories.append(setting_definition.key)
+
+        for child in children:
+            container._definition_cache[child.key] = child
+            self._updateAddedChildren(container, child)
 
     def _filterGcode(self, output_device):
         scene = self._application.getController().getScene()

@@ -1,0 +1,30 @@
+{
+    "settings":
+    {
+        "adhesion_z_offset":
+        {
+            "label": "Z Offset",
+            "description": "An additional offset of the build platform in relation to the nozzle. A negative value 'squishes' the print into the buildplate, a positive value will result in a bigger distance between the buildplate and the print.",
+            "type": "float",
+            "unit": "mm",
+            "default_value": 0,
+            "minimum_value": "-(layer_height_0 + 0.15)",
+            "maximum_value_warning": "layer_height_0",
+            "resolve": "extruderValue(adhesion_extruder_nr, 'adhesion_z_offset') if resolveOrValue('adhesion_type') != 'none' else min(extruderValues('adhesion_z_offset'))",
+            "settable_per_mesh": false,
+            "settable_per_extruder": false,
+            "settable_per_meshgroup": false
+        },
+        "adhesion_z_offset_extensive_processing":
+        {
+            "label": "Extensive Z Offset Processing",
+            "description": "Apply the Z Offset throughout the Gcode file instead of affecting the coordinate system. Turning this option on will increase the processing time so it is recommended to leave it off, but it may be needed for some firmware versions.",
+            "type": "bool",
+            "default_value": false,
+            "value": "True if machine_gcode_flavor == \"Griffin\" else False",
+            "settable_per_mesh": false,
+            "settable_per_extruder": false,
+            "settable_per_meshgroup": false
+        }
+    }
+}
