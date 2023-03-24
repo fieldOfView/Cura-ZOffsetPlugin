@@ -1,0 +1,45 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2023-03-24 13:16+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: zoffset.def.json
+msgctxt "adhesion_z_offset label"
+msgid "Z Offset"
+msgstr ""
+
+#: zoffset.def.json
+msgctxt "adhesion_z_offset description"
+msgid ""
+"An additional offset of the build platform in relation to the nozzle. A "
+"negative value 'squishes' the print into the buildplate, a positive value "
+"will result in a bigger distance between the buildplate and the print."
+msgstr ""
+
+#: zoffset.def.json
+msgctxt "adhesion_z_offset_extensive_processing label"
+msgid "Extensive Z Offset Processing"
+msgstr ""
+
+#: zoffset.def.json
+msgctxt "adhesion_z_offset_extensive_processing description"
+msgid ""
+"Apply the Z Offset throughout the Gcode file instead of affecting the "
+"coordinate system. Turning this option on will increase the processing time "
+"so it is recommended to leave it off, but it may be needed for some firmware "
+"versions."
+msgstr ""
